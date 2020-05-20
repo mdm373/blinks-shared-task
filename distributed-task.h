@@ -11,7 +11,6 @@
         typedef bool (receiveTaskMessage)(byte face, byte* id, byte* value);
         
 
-        //ing: just before, ed: just after
         #define DISTRIBUTED_TASK_VALUE_IN 0
         #define DISTRIBUTED_TASK_DONE 4
         
