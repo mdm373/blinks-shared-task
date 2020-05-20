@@ -10,21 +10,19 @@ namespace distributedTask {
     byte _outgoingFace = 0;
     byte _state = DISTRIBUTED_TASK_STATE_IDLE;
     
-    
-
     void reset() {
         _state = DISTRIBUTED_TASK_STATE_IDLE;
         _incomingFace = FACE_COUNT;
         _outgoingFace = 0;
     }
 
-    void sendAllDone(byte taskValue, sendTaskMessage& send){
+    void sendAllDone(const byte taskValue, const sendTaskMessage& send){
         FOREACH_FACE(f){
             send(f, MESSAGE_ID_DONE, taskValue);
         }
     }
     
-    bool respondHandled(const byte fromFace, const byte messageId, const byte messageValue, taskHandler& handler, sendTaskMessage& send){
+    bool respondHandled(const byte fromFace, const byte messageId, const byte messageValue, const sendTaskMessage& send){
         if (messageId == MESSAGE_ID_REQUEST) {
             send(fromFace, MESSAGE_ID_RESPONSE, messageValue);
             return true;
@@ -32,7 +30,7 @@ namespace distributedTask {
         return false;
     }
 
-    void sendBack(taskHandler& handler, byte taskValue, sendTaskMessage& send) {
+    void sendBack(const taskHandler& handler, const byte taskValue, const sendTaskMessage& send) {
         if(_incomingFace < FACE_COUNT) {
             send(_incomingFace, MESSAGE_ID_RESPONSE, taskValue);
             _state = DISTRIBUTED_TASK_STATE_DONE;
@@ -40,10 +38,10 @@ namespace distributedTask {
         }
         sendAllDone(taskValue, send);
         reset();
-        handler(DISTRIBUTED_TASK_DONE, taskValue);
+        handler(DISTRIBUTED_TASK_OP_DONE, taskValue);
     }
 
-    void sendAroundThenBack(taskHandler& handler, byte taskValue, sendTaskMessage& send) {
+    void sendAroundThenBack(const taskHandler& handler, const byte taskValue, const sendTaskMessage& send) {
         bool sent = false;
         while(sent == false && _outgoingFace < FACE_COUNT) {
             if(_outgoingFace == _incomingFace) {
@@ -63,10 +61,10 @@ namespace distributedTask {
     }
     
 
-    void begin(sendTaskMessage& send, taskHandler& handler, byte startValue) {
+    void begin(const sendTaskMessage& send, const taskHandler& handler, const byte startValue) {
         _incomingFace = FACE_COUNT;
         _outgoingFace = 0;
-        byte taskValue = handler(DISTRIBUTED_TASK_VALUE_IN, startValue);
+        const byte taskValue = handler(DISTRIBUTED_TASK_OP_VALUE_IN, startValue);
         sendAroundThenBack(handler, taskValue, send);
     }
 
@@ -76,12 +74,12 @@ namespace distributedTask {
         }
         _incomingFace = fromFace;
         _outgoingFace = 0;
-        byte taskValue = handler(DISTRIBUTED_TASK_VALUE_IN, messageValue);
+        byte taskValue = handler(DISTRIBUTED_TASK_OP_VALUE_IN, messageValue);
         sendAroundThenBack(handler, taskValue, send);
     }
 
-    void loopPending(const byte fromFace, const byte messageId, const byte messageValue, taskHandler& handler, sendTaskMessage& send){
-        if (respondHandled(fromFace, messageId, messageValue, handler, send)) {
+    void loopPending(const byte fromFace, const byte messageId, const byte messageValue, const taskHandler& handler, const sendTaskMessage& send){
+        if (respondHandled(fromFace, messageId, messageValue, send)) {
             return;
         }
 
@@ -93,19 +91,19 @@ namespace distributedTask {
 
     }
 
-    void loopDone(byte fromFace, byte messageId, byte messageValue, taskHandler& handler, sendTaskMessage& send){
-        if (respondHandled(fromFace, messageId, messageValue, handler, send)) {
+    void loopDone(const byte fromFace, const byte messageId, const byte messageValue, const taskHandler& handler, const sendTaskMessage& send){
+        if (respondHandled(fromFace, messageId, messageValue, send)) {
             return;
         }
         
         if (messageId == MESSAGE_ID_DONE) {
             sendAllDone(messageValue, send);
             reset();
-            handler(DISTRIBUTED_TASK_DONE, messageValue);
+            handler(DISTRIBUTED_TASK_OP_DONE, messageValue);
         }
     }
 
-    void update(receiveTaskMessage& receive, sendTaskMessage& send, taskHandler& handler){
+    void update(const receiveTaskMessage& receive, const sendTaskMessage& send, const taskHandler& handler){
         FOREACH_FACE(f){
             byte messageId = 0;
             byte messageValue = 0;

@@ -3,12 +3,10 @@
 #include <blinklib.h>
 #include "distributed-task.h"
 
-bool _isTaskStarter;
-
 /*
-You can implement the send functionality anyway you want, but at the end of the day, it
+You can implement the send functionality anyway you want. But at the end of the day, it
 needs to send the two bytes of data in a way that can be consistently read by the
-matching receive function.
+matching receive function. It needs to return false when it fails to send and true otherwise.
 */
 bool send(const byte face, const byte messageId, const byte messageValue){
   if(isValueReceivedOnFaceExpired(face)) {
@@ -33,8 +31,8 @@ bool receive(const byte face, byte* messageId, byte* messageValue){
       return false;
   }
   const byte* buffer = getDatagramOnFace(face);
-  messageId[0] = buffer[0];
-  messageValue[0] = buffer[1];
+  *messageId = buffer[0];
+  *messageValue = buffer[1];
   markDatagramReadOnFace(face);
   return true;
 }
@@ -49,14 +47,16 @@ the task).
 
 For the data done task, the value is the final blink's returned task value.
 */
+bool _isTaskStarter;
 byte countHandler(const byte op, const byte value) {
-    if(op == DISTRIBUTED_TASK_VALUE_IN) {
+    if(op == DISTRIBUTED_TASK_OP_VALUE_IN) { //value is the number of blinks before us.
       setColor(BLUE);
-      return value+1;
+      return value + 1; //there are one more of us
     }
-    if(op == DISTRIBUTED_TASK_DONE) {
+    if(op == DISTRIBUTED_TASK_OP_DONE) { // value is the total number of blinks.
         setColor(WHITE);
         Color showColor = _isTaskStarter ? ORANGE : RED;
+        _isTaskStarter = false;
         FOREACH_FACE(f){
           if(f < value){
             setColorOnFace(showColor, f);
