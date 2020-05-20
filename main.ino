@@ -48,6 +48,7 @@ the task).
 For the data done task, the value is the final blink's returned task value.
 */
 bool _isTaskStarter;
+
 byte countHandler(const byte op, const byte value) {
     if(op == DISTRIBUTED_TASK_OP_VALUE_IN) { //value is the number of blinks before us.
       setColor(BLUE);
@@ -71,7 +72,7 @@ void setup() {
 }
 
 void loop() {
-	if(buttonSingleClicked()){
+  if(buttonSingleClicked()){
     _isTaskStarter = true;
     distributedTask::begin(send, countHandler, 0);
   }
